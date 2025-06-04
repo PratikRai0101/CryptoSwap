@@ -203,7 +203,7 @@ export default function PriceView({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pb-8">
       {/* Custom Connect Modal */}
       <CustomConnectModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
 
