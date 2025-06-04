@@ -92,7 +92,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <div style={{ padding: "20px" }}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider theme={isDarkMode ? customDarkTheme : customLightTheme} modalSize="compact">
+          <RainbowKitProvider
+            theme={isDarkMode ? customDarkTheme : customLightTheme}
+            modalSize="compact"
+            appInfo={{
+              appName: "CryptoSwap by Pratik",
+              learnMoreUrl: "https://cryptoswap.com/learn",
+            }}
+          >
             {children}
           </RainbowKitProvider>
         </QueryClientProvider>

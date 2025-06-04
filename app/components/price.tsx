@@ -230,7 +230,7 @@ export default function PriceView({
 
               {/* Custom Connect Button */}
               <ConnectButton.Custom>
-                {({ account, chain, openAccountModal, openChainModal, mounted }) => {
+                {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
                   const ready = mounted
                   const connected = ready && account && chain
 
@@ -249,7 +249,11 @@ export default function PriceView({
                         if (!connected) {
                           return (
                             <button
-                              onClick={() => setShowConnectModal(true)}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setShowConnectModal(true)
+                              }}
                               type="button"
                               className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                             >
@@ -262,7 +266,11 @@ export default function PriceView({
                         if (chain.unsupported) {
                           return (
                             <button
-                              onClick={openChainModal}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                openChainModal()
+                              }}
                               type="button"
                               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                             >
@@ -275,9 +283,15 @@ export default function PriceView({
                           <div className="flex items-center space-x-2">
                             {/* Chain Button */}
                             <button
-                              onClick={openChainModal}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (openChainModal) {
+                                  openChainModal()
+                                }
+                              }}
                               type="button"
-                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors"
+                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               {chain.hasIcon && (
                                 <div
@@ -294,26 +308,37 @@ export default function PriceView({
                                       alt={chain.name ?? "Chain icon"}
                                       src={chain.iconUrl || "/placeholder.svg"}
                                       style={{ width: 16, height: 16 }}
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none"
+                                      }}
                                     />
                                   )}
                                 </div>
                               )}
-                              <span className="text-sm">{chain.name}</span>
+                              <span className="text-sm font-medium">{chain.name}</span>
                             </button>
 
                             {/* Account Button */}
                             <button
-                              onClick={openAccountModal}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (openAccountModal) {
+                                  openAccountModal()
+                                }
+                              }}
                               type="button"
-                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors"
+                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                                 <span className="text-xs font-bold text-white">
-                                  {account.displayName?.[0]?.toUpperCase()}
+                                  {account.displayName?.[0]?.toUpperCase() || "?"}
                                 </span>
                               </div>
-                              <span className="text-sm">{account.displayName}</span>
-                              <ChevronDown className="w-4 h-4" />
+                              <span className="text-sm font-medium max-w-[100px] truncate">
+                                {account.displayName || "Unknown"}
+                              </span>
+                              <ChevronDown className="w-4 h-4 opacity-60" />
                             </button>
                           </div>
                         )

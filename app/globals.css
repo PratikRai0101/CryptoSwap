@@ -255,6 +255,69 @@
   animation: shake 0.5s ease-in-out;
 }
 
+/* Add these styles at the end of the file, before @tailwind directives */
+
+/* Fix for RainbowKit modal scroll issues */
+[data-rk] [role="dialog"] {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+}
+
+/* Prevent body scroll when modal is open */
+body.rk-modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
+/* Ensure backdrop doesn't interfere with scrolling */
+[data-rk] [data-testid="rk-modal-backdrop"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9998 !important;
+}
+
+/* Improve button focus states */
+button:focus-visible {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
+/* Fix chain and account button styling */
+[data-rk] button[data-testid*="rk-chain-button"],
+[data-rk] button[data-testid*="rk-account-button"] {
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid var(--rk-colors-generalBorder) !important;
+}
+
+[data-rk] button[data-testid*="rk-chain-button"]:hover,
+[data-rk] button[data-testid*="rk-account-button"]:hover {
+  background: var(--rk-colors-menuItemBackground) !important;
+  border-color: var(--rk-colors-accentColor) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Ensure modals are properly layered */
+.rk-modal-overlay {
+  z-index: 9999 !important;
+}
+
+/* Fix for custom connect modal */
+.custom-connect-modal {
+  z-index: 10000 !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

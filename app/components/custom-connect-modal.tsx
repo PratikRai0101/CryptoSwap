@@ -96,6 +96,22 @@ export function CustomConnectModal({ isOpen, onClose }: CustomConnectModalProps)
     }
   }, [error, connectionState])
 
+  // Add this useEffect after the existing useEffects:
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("rk-modal-open")
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.classList.remove("rk-modal-open")
+      document.body.style.overflow = "unset"
+    }
+
+    return () => {
+      document.body.classList.remove("rk-modal-open")
+      document.body.style.overflow = "unset"
+    }
+  }, [isOpen])
+
   if (!mounted || !isOpen) return null
 
   const handleWalletConnect = async (walletId: string) => {
@@ -132,13 +148,14 @@ export function CustomConnectModal({ isOpen, onClose }: CustomConnectModalProps)
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center custom-connect-modal">
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100" : "opacity-0"
         }`}
         onClick={handleClose}
+        style={{ zIndex: 9998 }}
       />
 
       {/* Modal */}
@@ -146,6 +163,7 @@ export function CustomConnectModal({ isOpen, onClose }: CustomConnectModalProps)
         className={`relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden transform transition-all duration-300 ${
           isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
+        style={{ zIndex: 9999 }}
       >
         {/* Connection Overlay */}
         {connectionState === "connecting" && (
