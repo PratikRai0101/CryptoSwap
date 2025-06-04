@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { RainbowKitProvider, connectorsForWallets } from "@rainbow-me/rainbowkit"
+import { RainbowKitProvider, connectorsForWallets, lightTheme, darkTheme } from "@rainbow-me/rainbowkit"
 import {
   coinbaseWallet,
   metaMaskWallet,
@@ -36,7 +36,6 @@ const connectors = connectorsForWallets(
 
 const config = createConfig({
   chains: [mainnet],
-  // turn off injected provider discovery
   multiInjectedProviderDiscovery: false,
   connectors,
   ssr: true,
@@ -45,26 +44,57 @@ const config = createConfig({
 
 const queryClient = new QueryClient()
 
+// Custom theme configuration
+const customLightTheme = lightTheme({
+  accentColor: "#3b82f6",
+  accentColorForeground: "white",
+  borderRadius: "medium",
+  fontStack: "system",
+  overlayBlur: "small",
+})
+
+const customDarkTheme = darkTheme({
+  accentColor: "#3b82f6",
+  accentColorForeground: "white",
+  borderRadius: "medium",
+  fontStack: "system",
+  overlayBlur: "small",
+})
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = React.useState(false)
+  const [isDarkMode, setIsDarkMode] = React.useState(false)
 
   React.useEffect(() => {
     setMounted(true)
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains("dark"))
+    }
+
+    checkDarkMode()
+
+    // Watch for theme changes
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
+    return () => observer.disconnect()
   }, [])
 
   if (!mounted) {
-    return null // Prevent rendering on the server
+    return null
   }
 
   return (
-    <div
-      style={{
-        padding: "20px",
-      }}
-    >
+    <div style={{ padding: "20px" }}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <RainbowKitProvider>{children}</RainbowKitProvider>
+          <RainbowKitProvider theme={isDarkMode ? customDarkTheme : customLightTheme} modalSize="compact">
+            {children}
+          </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </div>

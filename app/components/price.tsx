@@ -10,6 +10,8 @@ import { useTokenList } from "../../src/hooks/useTokenList"
 import { TokenSelector } from "./token-selector"
 import { SwapAnimation } from "./swap-animation"
 import { LoadingSpinner } from "./loading-spinner"
+import { CustomConnectModal } from "./custom-connect-modal"
+import { Settings, Sun, Moon, Wallet, ChevronDown } from "lucide-react"
 import qs from "qs"
 
 export default function PriceView({
@@ -46,6 +48,7 @@ export default function PriceView({
   )
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [isSwapping, setIsSwapping] = useState(false)
+  const [showConnectModal, setShowConnectModal] = useState(false)
 
   // Use dynamic token list
   const { tokens, loading: tokensLoading } = useTokenList(chainId)
@@ -54,14 +57,6 @@ export default function PriceView({
   const tokensBySymbol = tokens.reduce(
     (acc, token) => {
       acc[token.symbol.toLowerCase()] = token
-      return acc
-    },
-    {} as Record<string, any>,
-  )
-
-  const tokensByAddress = tokens.reduce(
-    (acc, token) => {
-      acc[token.address.toLowerCase()] = token
       return acc
     },
     {} as Record<string, any>,
@@ -126,15 +121,16 @@ export default function PriceView({
     if (sellAmount !== "") {
       main()
     }
-  }, [sellTokenAddress, buyTokenObject?.address, parsedSellAmount, parsedBuyAmount, chainId, sellAmount, setPrice])
+  }, [sellTokenAddress, buyTokenObject, parsedSellAmount, parsedBuyAmount, chainId, sellAmount, setPrice])
 
   // Hook for fetching balance information for specified token for a specific taker address
-  const { data, isError, isLoading } = useBalance({
+  const { data: balanceData } = useBalance({
     address: taker,
     token: sellTokenAddress as Address,
   })
 
-  const inSufficientBalance = data && sellAmount ? parseUnits(sellAmount, sellTokenDecimals) > data.value : true
+  const inSufficientBalance =
+    balanceData && sellAmount ? parseUnits(sellAmount, sellTokenDecimals) > balanceData.value : true
 
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (Number.parseFloat(taxBps) / 100).toFixed(2)
@@ -184,7 +180,7 @@ export default function PriceView({
 
   const { data: writeContractResult, writeContractAsync: writeContract } = useWriteContract()
 
-  const { data: approvalReceiptData, isLoading: isApproving } = useWaitForTransactionReceipt({
+  const { isLoading: isApproving } = useWaitForTransactionReceipt({
     hash: writeContractResult,
   })
 
@@ -196,190 +192,260 @@ export default function PriceView({
 
   if (tokensLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <LoadingSpinner size="lg" />
-        <span className="ml-3 text-lg">Loading tokens...</span>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex justify-center items-center">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Loading tokens...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          position: "relative",
-        }}
-      >
-        <div style={{ position: "absolute", right: 0, top: 0, padding: 8 }}>
-          <button
-            onClick={toggleTheme}
-            className="rounded px-3 py-1 border border-gray-400 dark:border-gray-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
-            aria-label="Toggle dark mode"
-          >
-            {theme === "dark" ? "🌙 Dark" : "☀️ Light"}
-          </button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      {/* Custom Connect Modal */}
+      <CustomConnectModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
+
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">CryptoSwap</h1>
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">by Pratik</span>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <Sun className="w-5 h-5 text-yellow-500" />
+                ) : (
+                  <Moon className="w-5 h-5 text-gray-600" />
+                )}
+              </button>
+
+              {/* Custom Connect Button */}
+              <ConnectButton.Custom>
+                {({ account, chain, openAccountModal, openChainModal, mounted }) => {
+                  const ready = mounted
+                  const connected = ready && account && chain
+
+                  return (
+                    <div
+                      {...(!ready && {
+                        "aria-hidden": true,
+                        style: {
+                          opacity: 0,
+                          pointerEvents: "none",
+                          userSelect: "none",
+                        },
+                      })}
+                    >
+                      {(() => {
+                        if (!connected) {
+                          return (
+                            <button
+                              onClick={() => setShowConnectModal(true)}
+                              type="button"
+                              className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              <Wallet className="w-4 h-4" />
+                              <span>Connect Wallet</span>
+                            </button>
+                          )
+                        }
+
+                        if (chain.unsupported) {
+                          return (
+                            <button
+                              onClick={openChainModal}
+                              type="button"
+                              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              Wrong network
+                            </button>
+                          )
+                        }
+
+                        return (
+                          <div className="flex items-center space-x-2">
+                            {/* Chain Button */}
+                            <button
+                              onClick={openChainModal}
+                              type="button"
+                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              {chain.hasIcon && (
+                                <div
+                                  style={{
+                                    background: chain.iconBackground,
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: 999,
+                                    overflow: "hidden",
+                                  }}
+                                >
+                                  {chain.iconUrl && (
+                                    <img
+                                      alt={chain.name ?? "Chain icon"}
+                                      src={chain.iconUrl || "/placeholder.svg"}
+                                      style={{ width: 16, height: 16 }}
+                                    />
+                                  )}
+                                </div>
+                              )}
+                              <span className="text-sm">{chain.name}</span>
+                            </button>
+
+                            {/* Account Button */}
+                            <button
+                              onClick={openAccountModal}
+                              type="button"
+                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors"
+                            >
+                              <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                                <span className="text-xs font-bold text-white">
+                                  {account.displayName?.[0]?.toUpperCase()}
+                                </span>
+                              </div>
+                              <span className="text-sm">{account.displayName}</span>
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )
+                }}
+              </ConnectButton.Custom>
+            </div>
+          </div>
         </div>
-        <ConnectButton />
       </header>
 
-      <div className="container mx-auto p-10 max-w-md">
-        <header className="text-center py-4">
-          <h1 className="text-3xl font-bold">CryptoSwap by Pratik</h1>
-        </header>
-
-        <div className="bg-slate-200 dark:bg-slate-800 p-6 rounded-lg mb-3 space-y-4">
-          {/* Sell Token Section */}
-          <div>
-            <TokenSelector tokens={tokens} selectedToken={sellToken} onTokenSelect={setSellToken} label="Sell" />
-            <div className="mt-2">
-              <input
-                id="sell-amount"
-                value={sellAmount}
-                placeholder="0.0"
-                className="w-full h-12 px-4 text-lg rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                type="number"
-                onChange={(e) => {
-                  setTradeDirection("sell")
-                  setSellAmount(e.target.value)
-                }}
-              />
+      {/* Main Content */}
+      <main className="max-w-md mx-auto pt-8 px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Swap Interface Header */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Swap</h2>
+              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
             </div>
           </div>
 
-          {/* Swap Animation */}
-          <SwapAnimation isSwapping={isSwapping} onSwap={handleSwapTokens} />
+          {/* Swap Form */}
+          <div className="p-6 space-y-4">
+            {/* Sell Token Section */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">You pay</label>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-3">
+                <TokenSelector tokens={tokens} selectedToken={sellToken} onTokenSelect={setSellToken} label="" />
+                <input
+                  value={sellAmount}
+                  placeholder="0.0"
+                  className="w-full bg-transparent text-2xl font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+                  type="number"
+                  onChange={(e) => {
+                    setTradeDirection("sell")
+                    setSellAmount(e.target.value)
+                  }}
+                />
+                {balanceData && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Balance: {Number(formatUnits(balanceData.value, sellTokenDecimals)).toFixed(4)}{" "}
+                    {sellTokenObject?.symbol}
+                  </div>
+                )}
+              </div>
+            </div>
 
-          {/* Buy Token Section */}
-          <div>
-            <TokenSelector tokens={tokens} selectedToken={buyToken} onTokenSelect={setBuyToken} label="Buy" />
-            <div className="mt-2 relative">
-              <input
-                id="buy-amount"
-                value={buyAmount}
-                placeholder="0.0"
-                className="w-full h-12 px-4 text-lg rounded-lg border border-gray-300 bg-gray-50 cursor-not-allowed"
-                type="number"
-                disabled
-                onChange={(e) => {
-                  setTradeDirection("buy")
-                  setBuyAmount(e.target.value)
-                }}
-              />
-              {isLoadingPrice && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <LoadingSpinner size="sm" />
+            {/* Swap Animation */}
+            <div className="flex justify-center">
+              <SwapAnimation isSwapping={isSwapping} onSwap={handleSwapTokens} />
+            </div>
+
+            {/* Buy Token Section */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">You receive</label>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-3">
+                <TokenSelector tokens={tokens} selectedToken={buyToken} onTokenSelect={setBuyToken} label="" />
+                <div className="relative">
+                  <input
+                    value={buyAmount}
+                    placeholder="0.0"
+                    className="w-full bg-transparent text-2xl font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+                    type="number"
+                    disabled
+                  />
+                  {isLoadingPrice && (
+                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+                      <LoadingSpinner size="sm" />
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Fee and Tax Information */}
-          <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-            {price && price.fees?.integratorFee?.amount && (
-              <div>
-                Affiliate Fee:{" "}
-                {Number(formatUnits(BigInt(price.fees.integratorFee.amount), buyTokenDecimals)).toFixed(6)}{" "}
-                {buyTokenObject?.symbol}
+            {/* Fee Information */}
+            {(price?.fees?.integratorFee?.amount ||
+              buyTokenTax.buyTaxBps !== "0" ||
+              sellTokenTax.sellTaxBps !== "0") && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-1">
+                <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Transaction Details</div>
+                {price?.fees?.integratorFee?.amount && (
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    Affiliate Fee:{" "}
+                    {Number(formatUnits(BigInt(price.fees.integratorFee.amount), buyTokenDecimals)).toFixed(6)}{" "}
+                    {buyTokenObject?.symbol}
+                  </div>
+                )}
+                {buyTokenTax.buyTaxBps !== "0" && (
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    {buyTokenObject?.symbol} Buy Tax: {formatTax(buyTokenTax.buyTaxBps)}%
+                  </div>
+                )}
+                {sellTokenTax.sellTaxBps !== "0" && (
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    {sellTokenObject?.symbol} Sell Tax: {formatTax(sellTokenTax.sellTaxBps)}%
+                  </div>
+                )}
               </div>
             )}
-            {buyTokenTax.buyTaxBps !== "0" && (
-              <div>
-                {buyTokenObject?.symbol} Buy Tax: {formatTax(buyTokenTax.buyTaxBps)}%
-              </div>
-            )}
-            {sellTokenTax.sellTaxBps !== "0" && (
-              <div>
-                {sellTokenObject?.symbol} Sell Tax: {formatTax(sellTokenTax.sellTaxBps)}%
+
+            {/* Action Button */}
+            {taker ? (
+              <ApproveOrReviewButton
+                sellTokenAddress={sellTokenAddress as Address}
+                taker={taker}
+                onClick={() => setFinalize(true)}
+                disabled={inSufficientBalance}
+                price={price}
+                allowance={allowance}
+                writeContract={writeContract}
+                isApproving={isApproving}
+              />
+            ) : (
+              <div className="pt-4">
+                <button
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                  onClick={() => setShowConnectModal(true)}
+                  type="button"
+                >
+                  <Wallet className="w-5 h-5" />
+                  <span>Connect Wallet</span>
+                </button>
               </div>
             )}
           </div>
         </div>
-
-        {taker ? (
-          <ApproveOrReviewButton
-            sellTokenAddress={sellTokenAddress as Address}
-            taker={taker}
-            onClick={() => {
-              setFinalize(true)
-            }}
-            disabled={inSufficientBalance}
-            price={price}
-            allowance={allowance}
-            writeContract={writeContract}
-            isApproving={isApproving}
-          />
-        ) : (
-          <ConnectButton.Custom>
-            {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
-              const ready = mounted
-              const connected = ready && account && chain
-
-              return (
-                <div
-                  {...(!ready && {
-                    "aria-hidden": true,
-                    style: {
-                      opacity: 0,
-                      pointerEvents: "none",
-                      userSelect: "none",
-                    },
-                  })}
-                >
-                  {(() => {
-                    if (!connected) {
-                      return (
-                        <button
-                          className="w-full bg-blue-600 text-white font-semibold p-3 rounded-lg hover:bg-blue-700 transition-colors"
-                          onClick={openConnectModal}
-                          type="button"
-                        >
-                          Connect Wallet
-                        </button>
-                      )
-                    }
-
-                    if (chain.unsupported) {
-                      return (
-                        <button
-                          onClick={openChainModal}
-                          type="button"
-                          className="w-full bg-red-600 text-white font-semibold p-3 rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          Wrong network
-                        </button>
-                      )
-                    }
-
-                    return (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={openChainModal}
-                          className="flex items-center justify-center px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                          type="button"
-                        >
-                          {chain.name}
-                        </button>
-
-                        <button
-                          onClick={openAccountModal}
-                          type="button"
-                          className="flex-1 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-center"
-                        >
-                          {account.displayName}
-                          {account.displayBalance ? ` (${account.displayBalance})` : ""}
-                        </button>
-                      </div>
-                    )
-                  })()}
-                </div>
-              )
-            }}
-          </ConnectButton.Custom>
-        )}
-      </div>
+      </main>
     </div>
   )
 }
@@ -409,7 +475,7 @@ function ApproveOrReviewButton({
         type="button"
         disabled={disabled}
         onClick={onClick}
-        className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors"
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
@@ -420,7 +486,7 @@ function ApproveOrReviewButton({
     return (
       <button
         type="button"
-        className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center"
         onClick={async () => {
           await writeContract({
             abi: erc20Abi,
@@ -433,10 +499,10 @@ function ApproveOrReviewButton({
         {isApproving ? (
           <>
             <LoadingSpinner size="sm" />
-            <span className="ml-2">Approving…</span>
+            <span className="ml-2">Approving...</span>
           </>
         ) : (
-          "Approve"
+          "Approve Token"
         )}
       </button>
     )
@@ -447,7 +513,7 @@ function ApproveOrReviewButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-colors"
     >
       {disabled ? "Insufficient Balance" : "Review Trade"}
     </button>
