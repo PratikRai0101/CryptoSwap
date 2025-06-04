@@ -41,11 +41,7 @@ export default function PriceView({
     buyTaxBps: "0",
     sellTaxBps: "0",
   })
-  const [theme, setTheme] = useState<"light" | "dark">(
-    typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light",
-  )
+  const [theme, setTheme] = useState<"light" | "dark">("light")
   const [isLoadingPrice, setIsLoadingPrice] = useState(false)
   const [isSwapping, setIsSwapping] = useState(false)
   const [showConnectModal, setShowConnectModal] = useState(false)
@@ -135,13 +131,43 @@ export default function PriceView({
   // Helper function to format tax basis points to percentage
   const formatTax = (taxBps: string) => (Number.parseFloat(taxBps) / 100).toFixed(2)
 
+  // Theme state and effect
   useEffect(() => {
+    // On mount, check localStorage or system preference
+    const storedTheme = typeof window !== "undefined" ? localStorage.getItem("theme") : null
+    if (storedTheme === "light" || storedTheme === "dark") {
+      setTheme(storedTheme)
+      if (storedTheme === "dark") {
+        document.documentElement.classList.add("dark")
+        document.body.style.backgroundColor = "#0f172a"
+      } else {
+        document.documentElement.classList.remove("dark")
+        document.body.style.backgroundColor = "#f8fafc"
+      }
+    } else {
+      // Use system preference
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+      setTheme(prefersDark ? "dark" : "light")
+      if (prefersDark) {
+        document.documentElement.classList.add("dark")
+        document.body.style.backgroundColor = "#0f172a"
+      } else {
+        document.documentElement.classList.remove("dark")
+        document.body.style.backgroundColor = "#f8fafc"
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    // Update DOM and localStorage on theme change
     if (theme === "dark") {
       document.documentElement.classList.add("dark")
       document.body.style.backgroundColor = "#0f172a"
+      localStorage.setItem("theme", "dark")
     } else {
       document.documentElement.classList.remove("dark")
       document.body.style.backgroundColor = "#f8fafc"
+      localStorage.setItem("theme", "light")
     }
   }, [theme])
 
@@ -203,7 +229,7 @@ export default function PriceView({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pb-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors pb-8 pos">
       {/* Custom Connect Modal */}
       <CustomConnectModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
 
@@ -281,7 +307,7 @@ export default function PriceView({
                         }
 
                         return (
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center gap-2 sm:gap-4">
                             {/* Chain Button */}
                             <button
                               onClick={(e) => {
@@ -292,31 +318,35 @@ export default function PriceView({
                                 }
                               }}
                               type="button"
-                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[120px]"
+                              style={{ justifyContent: 'flex-start' }}
                             >
                               {chain.hasIcon && (
                                 <div
                                   style={{
                                     background: chain.iconBackground,
-                                    width: 16,
-                                    height: 16,
+                                    width: 20,
+                                    height: 20,
                                     borderRadius: 999,
                                     overflow: "hidden",
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                   }}
                                 >
                                   {chain.iconUrl && (
                                     <img
                                       alt={chain.name ?? "Chain icon"}
                                       src={chain.iconUrl || "/placeholder.svg"}
-                                      style={{ width: 16, height: 16 }}
+                                      style={{ width: 20, height: 20 }}
                                       onError={(e) => {
-                                        e.currentTarget.style.display = "none"
+                                        e.currentTarget.style.display = "none";
                                       }}
                                     />
                                   )}
                                 </div>
                               )}
-                              <span className="text-sm font-medium">{chain.name}</span>
+                              <span className="text-sm font-medium truncate max-w-[80px]">{chain.name}</span>
                             </button>
 
                             {/* Account Button */}
@@ -329,16 +359,15 @@ export default function PriceView({
                                 }
                               }}
                               type="button"
-                              className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[120px]"
+                              style={{ justifyContent: 'flex-start' }}
                             >
                               <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                                 <span className="text-xs font-bold text-white">
                                   {account.displayName?.[0]?.toUpperCase() || "?"}
                                 </span>
                               </div>
-                              <span className="text-sm font-medium max-w-[100px] truncate">
-                                {account.displayName || "Unknown"}
-                              </span>
+                              <span className="text-sm font-medium max-w-[80px] truncate">{account.displayName || "Unknown"}</span>
                               <ChevronDown className="w-4 h-4 opacity-60" />
                             </button>
                           </div>

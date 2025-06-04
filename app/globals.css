@@ -21,16 +21,12 @@
   --rk-colors-connectButtonText: #1f2937;
   --rk-colors-connectButtonTextError: #fff;
   --rk-colors-connectionIndicator: #10b981;
-  --rk-colors-downloadBottomCardBackground: linear-gradient(
-      126deg,
+  --rk-colors-downloadBottomCardBackground: linear-gradient(126deg,
       rgba(255, 255, 255, 0) 9.49%,
-      rgba(171, 171, 171, 0.04) 71.04%
-    ), #ffffff;
-  --rk-colors-downloadTopCardBackground: linear-gradient(
-      126deg,
+      rgba(171, 171, 171, 0.04) 71.04%), #ffffff;
+  --rk-colors-downloadTopCardBackground: linear-gradient(126deg,
       rgba(171, 171, 171, 0.2) 9.49%,
-      rgba(255, 255, 255, 0) 71.04%
-    ), #ffffff;
+      rgba(255, 255, 255, 0) 71.04%), #ffffff;
   --rk-colors-error: #ef4444;
   --rk-colors-generalBorder: rgba(0, 0, 0, 0.08);
   --rk-colors-generalBorderDim: rgba(0, 0, 0, 0.04);
@@ -199,9 +195,11 @@
     transform: scale(0);
     opacity: 0;
   }
+
   50% {
     transform: scale(1.1);
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -213,10 +211,12 @@
     transform: scale(0) rotate(45deg);
     opacity: 0;
   }
+
   50% {
     transform: scale(1.2) rotate(45deg);
     opacity: 1;
   }
+
   100% {
     transform: scale(1) rotate(0deg);
     opacity: 1;
@@ -224,10 +224,12 @@
 }
 
 @keyframes shake {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   10%,
   30%,
   50%,
@@ -235,6 +237,7 @@
   90% {
     transform: translateX(-5px);
   }
+
   20%,
   40%,
   60%,
@@ -318,6 +321,76 @@ button:focus-visible {
   z-index: 10000 !important;
 }
 
+/* Increase RainbowKit modal width and improve account modal layout */
+.rk-modal,
+[data-rk] .rk-modal {
+  min-width: 1040px !important;
+  max-width: 1520px !important;
+}
+
+@media (max-width: 600px) {
+
+  .rk-modal,
+  [data-rk] .rk-modal {
+    min-width: 96vw !important;
+    max-width: 99vw !important;
+  }
+}
+
+/* Fix RainbowKit account modal content alignment and spacing */
+.rk-modal .rk-accountModal,
+[data-rk] .rk-accountModal {
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 2rem 1.5rem 1.5rem 1.5rem !important;
+  gap: 4.5rem !important;
+  min-width: 400px !important;
+  width: 500px !important;
+  height: 500px !important;
+  min-height: 400px !important;
+}
+
+.rk-modal .rk-accountModal-avatar,
+[data-rk] .rk-accountModal-avatar {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 0 auto 1rem auto !important;
+}
+
+.rk-modal .rk-accountModal-address,
+[data-rk] .rk-accountModal-address {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.5rem !important;
+  text-align: center !important;
+}
+
+.rk-modal .rk-accountModal-balance,
+[data-rk] .rk-accountModal-balance {
+  font-size: 1rem !important;
+  margin-bottom: 1rem !important;
+  text-align: center !important;
+}
+
+.rk-modal .rk-accountModal-actions,
+[data-rk] .rk-accountModal-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2rem !important;
+  justify-content: center !important;
+  margin-top: 1.5rem !important;
+  width: 100%;
+}
+
+.rk-modal .rk-accountModal-actions button,
+[data-rk] .rk-accountModal-actions button {
+  min-width: 140px !important;
+  font-size: 1rem !important;
+  justify-content: center !important;
+}
+
+/* ...existing code... */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
