@@ -102,17 +102,17 @@ export default function QuoteView({
   const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
 
   return (
-    <div className="p-3 mx-auto max-w-screen-sm ">
+    <div className="p-3 mx-auto max-w-full sm:max-w-screen-sm w-full">
       <form>
-        <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-sm mb-3">
+        <div className="bg-slate-200 dark:bg-slate-800 p-3 sm:p-4 rounded-sm mb-3">
           <div className="text-xl mb-2 text-white">You pay</div>
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <Image
               alt={sellTokenInfo(chainId).symbol}
-              className="h-9 w-9 mr-2 rounded-md"
+              className="h-7 w-7 sm:h-9 sm:w-9 mr-2 rounded-md"
               src={sellTokenInfo(chainId || 1)?.logoURI}
-              width={9}
-              height={9}
+              width={36}
+              height={36}
             />
             <span>
               {formatUnits(quote.sellAmount, sellTokenInfo(chainId).decimals)}
@@ -121,14 +121,14 @@ export default function QuoteView({
           </div>
         </div>
 
-        <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-sm mb-3">
+        <div className="bg-slate-200 dark:bg-slate-800 p-3 sm:p-4 rounded-sm mb-3">
           <div className="text-xl mb-2 text-white">You receive</div>
           <div className="flex items-center text-lg sm:text-3xl text-white">
             <img
               alt={
                 MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].symbol
               }
-              className="h-9 w-9 mr-2 rounded-md"
+              className="h-7 w-7 sm:h-9 sm:w-9 mr-2 rounded-md"
               src={
                 MAINNET_TOKENS_BY_ADDRESS[price.buyToken.toLowerCase()].logoURI
               }
@@ -140,7 +140,7 @@ export default function QuoteView({
           </div>
         </div>
 
-        <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-sm mb-3">
+        <div className="bg-slate-200 dark:bg-slate-800 p-3 sm:p-4 rounded-sm mb-3">
           <div className="text-slate-400">
             {quote &&
             quote.fees &&

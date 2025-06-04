@@ -383,10 +383,10 @@ export default function PriceView({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto pt-8 px-4">
+      <main className="max-w-md w-full mx-auto pt-8 px-2 sm:px-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Swap Interface Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Swap</h2>
               <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
@@ -396,7 +396,7 @@ export default function PriceView({
           </div>
 
           {/* Swap Form */}
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {/* Sell Token Section */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">You pay</label>
