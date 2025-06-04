@@ -9,6 +9,7 @@ import {
   trustWallet,
   ledgerWallet,
   rainbowWallet,
+  injectedWallet,
 } from "@rainbow-me/rainbowkit/wallets"
 import { mainnet } from "wagmi/chains"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -25,7 +26,7 @@ const connectors = connectorsForWallets(
     },
     {
       groupName: "Other",
-      wallets: [rainbowWallet, metaMaskWallet, argentWallet, trustWallet, ledgerWallet],
+      wallets: [rainbowWallet, metaMaskWallet, argentWallet, trustWallet, ledgerWallet, injectedWallet],
     },
   ],
   {

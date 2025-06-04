@@ -245,7 +245,7 @@ export function CustomConnectModal({ isOpen, onClose }: CustomConnectModalProps)
           </div>
         )}
 
-        <div className="flex h-[600px]">
+        <div className="flex h-[600px] overflow-y-auto">
           {/* Left Panel - Wallet List */}
           <div className="w-1/2 p-8 border-r border-gray-700">
             {/* Header */}
@@ -437,9 +437,14 @@ export function CustomConnectModal({ isOpen, onClose }: CustomConnectModalProps)
               </p>
 
               {connectionState === "idle" && (
-                <button className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
+                <a
+                  href="https://www.youtube.com/watch?v=Af_lQ1zUnoM"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
                   New to wallets?
-                </button>
+                </a>
               )}
             </div>
 
