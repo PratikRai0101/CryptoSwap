@@ -2,7 +2,7 @@
 
 A beautiful, modern, and minimal decentralized crypto swap interface built with Next.js, RainbowKit, Wagmi, and the 0x Swap API. Easily connect your wallet, get real-time swap quotes, and swap tokens with a smooth user experience and full dark/light mode support.
 
-![CryptoSwap UI Preview](cryptoswap/src/images/priceView.png)
+![CryptoSwap Wallet Modal](cryptoswap/src/images/wallet-modal.png)
 
 ---
 
@@ -55,9 +55,9 @@ Visit [http://localhost:3000](http://localhost:3000) in your browser.
 ---
 
 ## 📸 Screenshots
-| Swap View | Quote View |
-|-----------|------------|
-| ![Swap](cryptoswap/src/images/priceView.png) | ![Quote](cryptoswap/src/images/quoteView.png) |
+| Wallet Modal | Swap View | Quote View |
+|--------------|-----------|------------|
+| ![Wallet Modal](cryptoswap/src/images/wallet-modal.png) | ![Swap](cryptoswap/src/images/swap-view.png) | ![Quote](cryptoswap/src/images/quote-view.png) |
 
 ---
 
