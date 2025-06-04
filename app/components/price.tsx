@@ -1,31 +1,25 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useEffect, useState, ChangeEvent } from "react";
-import { formatUnits, parseUnits } from "ethers";
-import {
-  useReadContract,
-  useBalance,
-  useSimulateContract,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { erc20Abi, Address } from "viem";
+"use client"
+
+import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { useEffect, useState, type ChangeEvent } from "react"
+import { formatUnits, parseUnits } from "ethers"
+import { useReadContract, useBalance, useSimulateContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { erc20Abi, type Address } from "viem"
 import {
   MAINNET_TOKENS,
   MAINNET_TOKENS_BY_SYMBOL,
   MAX_ALLOWANCE,
   AFFILIATE_FEE,
   FEE_RECIPIENT,
-} from "../../src/constants";
-import { permit2Abi } from "../../src/utils/permit2abi";
-import ZeroExLogo from "../../src/images/white-0x-logo.png";
-import Image from "next/image";
-import qs from "qs";
+} from "../../src/constants"
+import Image from "next/image"
+import qs from "qs"
 
 export const DEFAULT_BUY_TOKEN = (chainId: number) => {
   if (chainId === 1) {
-    return "weth";
+    return "weth"
   }
-};
+}
 
 export default function PriceView({
   price,
@@ -34,65 +28,59 @@ export default function PriceView({
   setFinalize,
   chainId,
 }: {
-  price: any;
-  taker: Address | undefined;
-  setPrice: (price: any) => void;
-  setFinalize: (finalize: boolean) => void;
-  chainId: number;
+  price: any
+  taker: Address | undefined
+  setPrice: (price: any) => void
+  setFinalize: (finalize: boolean) => void
+  chainId: number
 }) {
-  const [sellToken, setSellToken] = useState("weth");
-  const [buyToken, setBuyToken] = useState("usdc");
-  const [sellAmount, setSellAmount] = useState("");
-  const [buyAmount, setBuyAmount] = useState("");
-  const [tradeDirection, setTradeDirection] = useState("sell");
-  const [error, setError] = useState([]);
+  const [sellToken, setSellToken] = useState("weth")
+  const [buyToken, setBuyToken] = useState("usdc")
+  const [sellAmount, setSellAmount] = useState("")
+  const [buyAmount, setBuyAmount] = useState("")
+  const [tradeDirection, setTradeDirection] = useState("sell")
+  const [error, setError] = useState([])
   const [buyTokenTax, setBuyTokenTax] = useState({
     buyTaxBps: "0",
     sellTaxBps: "0",
-  });
+  })
   const [sellTokenTax, setSellTokenTax] = useState({
     buyTaxBps: "0",
     sellTaxBps: "0",
-  });
+  })
   const [theme, setTheme] = useState<"light" | "dark">(
-    typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
+    typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
-      : "light"
-  );
+      : "light",
+  )
 
   const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSellToken(e.target.value);
-  };
+    setSellToken(e.target.value)
+  }
   function handleBuyTokenChange(e: ChangeEvent<HTMLSelectElement>) {
-    setBuyToken(e.target.value);
+    setBuyToken(e.target.value)
   }
 
   const tokensByChain = (chainId: number) => {
     if (chainId === 1) {
-      return MAINNET_TOKENS_BY_SYMBOL;
+      return MAINNET_TOKENS_BY_SYMBOL
     }
-    return MAINNET_TOKENS_BY_SYMBOL;
-  };
+    return MAINNET_TOKENS_BY_SYMBOL
+  }
 
-  const sellTokenObject = tokensByChain(chainId)[sellToken];
-  console.log("sellTokenObject", sellTokenObject);
-  const buyTokenObject = tokensByChain(chainId)[buyToken];
+  const sellTokenObject = tokensByChain(chainId)[sellToken]
+  console.log("sellTokenObject", sellTokenObject)
+  const buyTokenObject = tokensByChain(chainId)[buyToken]
 
-  const sellTokenDecimals = sellTokenObject.decimals;
-  const buyTokenDecimals = buyTokenObject.decimals;
-  const sellTokenAddress = sellTokenObject.address;
+  const sellTokenDecimals = sellTokenObject.decimals
+  const buyTokenDecimals = buyTokenObject.decimals
+  const sellTokenAddress = sellTokenObject.address
 
   const parsedSellAmount =
-    sellAmount && tradeDirection === "sell"
-      ? parseUnits(sellAmount, sellTokenDecimals).toString()
-      : undefined;
+    sellAmount && tradeDirection === "sell" ? parseUnits(sellAmount, sellTokenDecimals).toString() : undefined
 
   const parsedBuyAmount =
-    buyAmount && tradeDirection === "buy"
-      ? parseUnits(buyAmount, buyTokenDecimals).toString()
-      : undefined;
+    buyAmount && tradeDirection === "buy" ? parseUnits(buyAmount, buyTokenDecimals).toString() : undefined
 
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
@@ -107,31 +95,31 @@ export default function PriceView({
       swapFeeBps: AFFILIATE_FEE,
       swapFeeToken: buyTokenObject.address,
       tradeSurplusRecipient: FEE_RECIPIENT,
-    };
+    }
 
     async function main() {
-      const response = await fetch(`/api/price?${qs.stringify(params)}`);
-      const data = await response.json();
+      const response = await fetch(`/api/price?${qs.stringify(params)}`)
+      const data = await response.json()
 
       if (data?.validationErrors?.length > 0) {
         // error for sellAmount too low
-        setError(data.validationErrors);
+        setError(data.validationErrors)
       } else {
-        setError([]);
+        setError([])
       }
       if (data.buyAmount) {
-        setBuyAmount(formatUnits(data.buyAmount, buyTokenDecimals));
-        setPrice(data);
+        setBuyAmount(formatUnits(data.buyAmount, buyTokenDecimals))
+        setPrice(data)
       }
       // Set token tax information
       if (data?.tokenMetadata) {
-        setBuyTokenTax(data.tokenMetadata.buyToken);
-        setSellTokenTax(data.tokenMetadata.sellToken);
+        setBuyTokenTax(data.tokenMetadata.buyToken)
+        setSellTokenTax(data.tokenMetadata.sellToken)
       }
     }
 
     if (sellAmount !== "") {
-      main();
+      main()
     }
   }, [
     sellTokenObject.address,
@@ -143,37 +131,63 @@ export default function PriceView({
     setPrice,
     FEE_RECIPIENT,
     AFFILIATE_FEE,
-  ]);
+  ])
 
   // Hook for fetching balance information for specified token for a specific taker address
   const { data, isError, isLoading } = useBalance({
     address: taker,
     token: sellTokenObject.address,
-  });
+  })
 
-  console.log("taker sellToken balance: ", data);
+  console.log("taker sellToken balance: ", data)
 
-  const inSufficientBalance =
-    data && sellAmount
-      ? parseUnits(sellAmount, sellTokenDecimals) > data.value
-      : true;
+  const inSufficientBalance = data && sellAmount ? parseUnits(sellAmount, sellTokenDecimals) > data.value : true
 
   // Helper function to format tax basis points to percentage
-  const formatTax = (taxBps: string) => (parseFloat(taxBps) / 100).toFixed(2);
+  const formatTax = (taxBps: string) => (Number.parseFloat(taxBps) / 100).toFixed(2)
 
   useEffect(() => {
     if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      document.body.style.backgroundColor = "#0f172a";
+      document.documentElement.classList.add("dark")
+      document.body.style.backgroundColor = "#0f172a"
     } else {
-      document.documentElement.classList.remove("dark");
-      document.body.style.backgroundColor = "#f8fafc";
+      document.documentElement.classList.remove("dark")
+      document.body.style.backgroundColor = "#f8fafc"
     }
-  }, [theme]);
+  }, [theme])
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+    setTheme((prev) => (prev === "light" ? "dark" : "light"))
+  }
+
+  // Hooks for ERC20 allowance
+  const spender = price?.issues.allowance?.spender
+  const { data: allowance, refetch } = useReadContract({
+    address: sellTokenAddress,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [taker, spender],
+  })
+  console.log("checked spender approval")
+
+  const { data: simulateApproveData } = useSimulateContract({
+    address: sellTokenAddress,
+    abi: erc20Abi,
+    functionName: "approve",
+    args: [spender, MAX_ALLOWANCE],
+  })
+
+  const { data: writeContractResult, writeContractAsync: writeContract } = useWriteContract()
+
+  const { data: approvalReceiptData, isLoading: isApproving } = useWaitForTransactionReceipt({
+    hash: writeContractResult,
+  })
+
+  useEffect(() => {
+    if (simulateApproveData) {
+      refetch()
+    }
+  }, [simulateApproveData, refetch])
 
   return (
     <div>
@@ -211,7 +225,7 @@ export default function PriceView({
             <Image
               alt={sellToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[sellToken].logoURI}
+              src={MAINNET_TOKENS_BY_SYMBOL[sellToken].logoURI || "/placeholder.svg"}
               width={9}
               height={9}
             />
@@ -227,13 +241,10 @@ export default function PriceView({
                 {/* <option value="">--Choose a token--</option> */}
                 {MAINNET_TOKENS.map((token) => {
                   return (
-                    <option
-                      key={token.address}
-                      value={token.symbol.toLowerCase()}
-                    >
+                    <option key={token.address} value={token.symbol.toLowerCase()}>
                       {token.symbol}
                     </option>
-                  );
+                  )
                 })}
               </select>
             </div>
@@ -245,8 +256,8 @@ export default function PriceView({
               style={{ border: "1px solid black" }}
               type="number"
               onChange={(e) => {
-                setTradeDirection("sell");
-                setSellAmount(e.target.value);
+                setTradeDirection("sell")
+                setSellAmount(e.target.value)
               }}
             />
           </section>
@@ -258,7 +269,7 @@ export default function PriceView({
             <Image
               alt={buyToken}
               className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[buyToken].logoURI}
+              src={MAINNET_TOKENS_BY_SYMBOL[buyToken].logoURI || "/placeholder.svg"}
               width={9}
               height={9}
             />
@@ -272,13 +283,10 @@ export default function PriceView({
               {/* <option value="">--Choose a token--</option> */}
               {MAINNET_TOKENS.map((token) => {
                 return (
-                  <option
-                    key={token.address}
-                    value={token.symbol.toLowerCase()}
-                  >
+                  <option key={token.address} value={token.symbol.toLowerCase()}>
                     {token.symbol}
                   </option>
-                );
+                )
               })}
             </select>
             <label htmlFor="buy-amount" className="sr-only"></label>
@@ -290,8 +298,8 @@ export default function PriceView({
               style={{ border: "1px solid black" }}
               disabled
               onChange={(e) => {
-                setTradeDirection("buy");
-                setBuyAmount(e.target.value);
+                setTradeDirection("buy")
+                setBuyAmount(e.target.value)
               }}
             />
           </section>
@@ -301,10 +309,7 @@ export default function PriceView({
             {price && price.fees.integratorFee.amount
               ? "Affiliate Fee: " +
                 Number(
-                  formatUnits(
-                    BigInt(price.fees.integratorFee.amount),
-                    MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals
-                  )
+                  formatUnits(BigInt(price.fees.integratorFee.amount), MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals),
                 ) +
                 " " +
                 MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
@@ -314,16 +319,10 @@ export default function PriceView({
           {/* Tax Information Display */}
           <div className="text-slate-400">
             {buyTokenTax.buyTaxBps !== "0" && (
-              <p>
-                {MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol +
-                  ` Buy Tax: ${formatTax(buyTokenTax.buyTaxBps)}%`}
-              </p>
+              <p>{MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol + ` Buy Tax: ${formatTax(buyTokenTax.buyTaxBps)}%`}</p>
             )}
             {sellTokenTax.sellTaxBps !== "0" && (
-              <p>
-                {MAINNET_TOKENS_BY_SYMBOL[sellToken].symbol +
-                  ` Sell Tax: ${formatTax(sellTokenTax.sellTaxBps)}%`}
-              </p>
+              <p>{MAINNET_TOKENS_BY_SYMBOL[sellToken].symbol + ` Sell Tax: ${formatTax(sellTokenTax.sellTaxBps)}%`}</p>
             )}
           </div>
         </div>
@@ -333,23 +332,19 @@ export default function PriceView({
             sellTokenAddress={MAINNET_TOKENS_BY_SYMBOL[sellToken].address}
             taker={taker}
             onClick={() => {
-              setFinalize(true);
+              setFinalize(true)
             }}
             disabled={inSufficientBalance}
             price={price}
+            allowance={allowance}
+            writeContract={writeContract}
+            isApproving={isApproving}
           />
         ) : (
           <ConnectButton.Custom>
-            {({
-              account,
-              chain,
-              openAccountModal,
-              openChainModal,
-              openConnectModal,
-              mounted,
-            }) => {
-              const ready = mounted;
-              const connected = ready && account && chain;
+            {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+              const ready = mounted
+              const connected = ready && account && chain
 
               return (
                 <div
@@ -372,7 +367,7 @@ export default function PriceView({
                         >
                           Connect Wallet
                         </button>
-                      );
+                      )
                     }
 
                     if (chain.unsupported) {
@@ -380,7 +375,7 @@ export default function PriceView({
                         <button onClick={openChainModal} type="button">
                           Wrong network
                         </button>
-                      );
+                      )
                     }
 
                     return (
@@ -403,7 +398,7 @@ export default function PriceView({
                             >
                               {chain.iconUrl && (
                                 <Image
-                                  src={chain.iconUrl}
+                                  src={chain.iconUrl || "/placeholder.svg"}
                                   alt={chain.name ?? "Chain icon"}
                                   width={12}
                                   height={12}
@@ -417,132 +412,90 @@ export default function PriceView({
 
                         <button onClick={openAccountModal} type="button">
                           {account.displayName}
-                          {account.displayBalance
-                            ? ` (${account.displayBalance})`
-                            : ""}
+                          {account.displayBalance ? ` (${account.displayBalance})` : ""}
                         </button>
                       </div>
-                    );
+                    )
                   })()}
                 </div>
-              );
+              )
             }}
           </ConnectButton.Custom>
         )}
       </div>
     </div>
-  );
+  )
+}
 
-  function ApproveOrReviewButton({
-    taker,
-    onClick,
-    sellTokenAddress,
-    disabled,
-    price,
-  }: {
-    taker: Address;
-    onClick: () => void;
-    sellTokenAddress: Address;
-    disabled?: boolean;
-    price: any;
-  }) {
-    // If price.issues.allowance is null, show the Review Trade button
-    if (price?.issues.allowance === null) {
-      return (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => {
-            // fetch data, when finished, show quote view
-            onClick();
-          }}
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
-        >
-          {disabled ? "Insufficient Balance" : "Review Trade"}
-        </button>
-      );
-    }
-
-    // Determine the spender from price.issues.allowance
-    const spender = price?.issues.allowance.spender;
-
-    // 1. Read from erc20, check approval for the determined spender to spend sellToken
-    const { data: allowance, refetch } = useReadContract({
-      address: sellTokenAddress,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [taker, spender],
-    });
-    console.log("checked spender approval");
-
-    // 2. (only if no allowance): write to erc20, approve token allowance for the determined spender
-    const { data } = useSimulateContract({
-      address: sellTokenAddress,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [spender, MAX_ALLOWANCE],
-    });
-
-    // Define useWriteContract for the 'approve' operation
-    const {
-      data: writeContractResult,
-      writeContractAsync: writeContract,
-      error,
-    } = useWriteContract();
-
-    // useWaitForTransactionReceipt to wait for the approval transaction to complete
-    const { data: approvalReceiptData, isLoading: isApproving } =
-      useWaitForTransactionReceipt({
-        hash: writeContractResult,
-      });
-
-    // Call `refetch` when the transaction succeeds
-    useEffect(() => {
-      if (data) {
-        refetch();
-      }
-    }, [data, refetch]);
-
-    if (error) {
-      return <div>Something went wrong: {error.message}</div>;
-    }
-
-    if (allowance === 0n) {
-      return (
-        <>
-          <button
-            type="button"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-            onClick={async () => {
-              await writeContract({
-                abi: erc20Abi,
-                address: sellTokenAddress,
-                functionName: "approve",
-                args: [spender, MAX_ALLOWANCE],
-              });
-              console.log("approving spender to spend sell token");
-
-              refetch();
-            }}
-          >
-            {isApproving ? "Approving…" : "Approve"}
-          </button>
-        </>
-      );
-    }
-
+function ApproveOrReviewButton({
+  taker,
+  onClick,
+  sellTokenAddress,
+  disabled,
+  price,
+  allowance,
+  writeContract,
+  isApproving,
+}: {
+  taker: Address
+  onClick: () => void
+  sellTokenAddress: Address
+  disabled?: boolean
+  price: any
+  allowance: any
+  writeContract: any
+  isApproving: boolean
+}) {
+  // If price.issues.allowance is null, show the Review Trade button
+  if (price?.issues.allowance === null) {
     return (
       <button
         type="button"
         disabled={disabled}
         onClick={() => {
           // fetch data, when finished, show quote view
-          onClick();
+          onClick()
         }}
         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
-    );
+    )
   }
+
+  if (allowance === 0n) {
+    return (
+      <>
+        <button
+          type="button"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+          onClick={async () => {
+            await writeContract({
+              abi: erc20Abi,
+              address: sellTokenAddress,
+              functionName: "approve",
+              args: [price?.issues.allowance?.spender, MAX_ALLOWANCE],
+            })
+            console.log("approving spender to spend sell token")
+          }}
+        >
+          {isApproving ? "Approving…" : "Approve"}
+        </button>
+      </>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => {
+        // fetch data, when finished, show quote view
+        onClick()
+      }}
+      className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+    >
+      {disabled ? "Insufficient Balance" : "Review Trade"}
+    </button>
+  )
 }
