@@ -164,15 +164,13 @@ export default function PriceView({
 
   // Hooks for ERC20 allowance
   const spender = price?.issues.allowance?.spender
-  const { data: allowance, refetch } = (taker && spender
-    ? useReadContract({
-        address: sellTokenAddress as Address,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [taker as Address, spender as Address],
-      })
-    : { data: undefined, refetch: () => {} }
-  )
+  const shouldFetchAllowance = Boolean(taker && spender && sellTokenAddress)
+  const { data: allowance, refetch } = useReadContract({
+    address: shouldFetchAllowance ? (sellTokenAddress as Address) : undefined,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: shouldFetchAllowance ? [taker as Address, spender as Address] : undefined,
+  })
 
   const { data: simulateApproveData } = useSimulateContract({
     address: sellTokenAddress as Address,
