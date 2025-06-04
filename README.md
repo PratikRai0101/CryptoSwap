@@ -30,7 +30,11 @@ cd cryptoswap
 
 ### 2. **Install Dependencies**
 ```powershell
-pnpm install
+npm install
+```
+If npm install shows error try 
+```powershell 
+npm install --legacy-peer-deps
 ```
 
 ### 3. **Set Up Environment**
@@ -38,7 +42,7 @@ pnpm install
 
 ### 4. **Run the App**
 ```powershell
-pnpm dev
+npm run dev
 ```
 Visit [http://localhost:3000](http://localhost:3000) in your browser.
 
