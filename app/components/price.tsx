@@ -213,10 +213,10 @@ export default function PriceView({
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">CryptoSwap</h1>
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">by Pratik</span>
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 pt-1">by Pratik</span>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 px-4">
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
