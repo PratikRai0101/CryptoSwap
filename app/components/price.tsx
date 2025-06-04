@@ -164,12 +164,15 @@ export default function PriceView({
 
   // Hooks for ERC20 allowance
   const spender = price?.issues.allowance?.spender
-  const { data: allowance, refetch } = useReadContract({
-    address: sellTokenAddress as Address,
-    abi: erc20Abi,
-    functionName: "allowance",
-    args: [taker, spender],
-  })
+  const { data: allowance, refetch } = (taker && spender
+    ? useReadContract({
+        address: sellTokenAddress as Address,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [taker as Address, spender as Address],
+      })
+    : { data: undefined, refetch: () => {} }
+  )
 
   const { data: simulateApproveData } = useSimulateContract({
     address: sellTokenAddress as Address,
@@ -207,7 +210,7 @@ export default function PriceView({
       <CustomConnectModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
 
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -507,18 +510,26 @@ function ApproveOrReviewButton({
     )
   }
 
-  if (allowance === 0n) {
+  if (allowance === BigInt(0)) {
     return (
       <button
         type="button"
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center"
         onClick={async () => {
-          await writeContract({
-            abi: erc20Abi,
-            address: sellTokenAddress,
-            functionName: "approve",
-            args: [price?.issues.allowance?.spender, MAX_ALLOWANCE],
-          })
+          try {
+            await writeContract({
+              abi: erc20Abi,
+              address: sellTokenAddress,
+              functionName: "approve",
+              args: [price?.issues.allowance?.spender, MAX_ALLOWANCE],
+            })
+          } catch (err: any) {
+            if (err?.message?.includes("User denied transaction signature")) {
+              window.alert("Transaction rejected in wallet. Please approve the transaction to continue.")
+            } else {
+              window.alert("Error: " + (err?.message || "Unknown error"))
+            }
+          }
         }}
       >
         {isApproving ? (
