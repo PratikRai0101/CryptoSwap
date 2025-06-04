@@ -1,25 +1,16 @@
 "use client"
 
 import { ConnectButton } from "@rainbow-me/rainbowkit"
-import { useEffect, useState, type ChangeEvent } from "react"
+import { useEffect, useState } from "react"
 import { formatUnits, parseUnits } from "ethers"
 import { useReadContract, useBalance, useSimulateContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { erc20Abi, type Address } from "viem"
-import {
-  MAINNET_TOKENS,
-  MAINNET_TOKENS_BY_SYMBOL,
-  MAX_ALLOWANCE,
-  AFFILIATE_FEE,
-  FEE_RECIPIENT,
-} from "../../src/constants"
-import Image from "next/image"
+import { MAX_ALLOWANCE, AFFILIATE_FEE, FEE_RECIPIENT } from "../../src/constants"
+import { useTokenList } from "../../src/hooks/useTokenList"
+import { TokenSelector } from "./token-selector"
+import { SwapAnimation } from "./swap-animation"
+import { LoadingSpinner } from "./loading-spinner"
 import qs from "qs"
-
-export const DEFAULT_BUY_TOKEN = (chainId: number) => {
-  if (chainId === 1) {
-    return "weth"
-  }
-}
 
 export default function PriceView({
   price,
@@ -53,28 +44,35 @@ export default function PriceView({
       ? "dark"
       : "light",
   )
+  const [isLoadingPrice, setIsLoadingPrice] = useState(false)
+  const [isSwapping, setIsSwapping] = useState(false)
 
-  const handleSellTokenChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSellToken(e.target.value)
-  }
-  function handleBuyTokenChange(e: ChangeEvent<HTMLSelectElement>) {
-    setBuyToken(e.target.value)
-  }
+  // Use dynamic token list
+  const { tokens, loading: tokensLoading } = useTokenList(chainId)
 
-  const tokensByChain = (chainId: number) => {
-    if (chainId === 1) {
-      return MAINNET_TOKENS_BY_SYMBOL
-    }
-    return MAINNET_TOKENS_BY_SYMBOL
-  }
+  // Create token mappings from dynamic list
+  const tokensBySymbol = tokens.reduce(
+    (acc, token) => {
+      acc[token.symbol.toLowerCase()] = token
+      return acc
+    },
+    {} as Record<string, any>,
+  )
 
-  const sellTokenObject = tokensByChain(chainId)[sellToken]
-  console.log("sellTokenObject", sellTokenObject)
-  const buyTokenObject = tokensByChain(chainId)[buyToken]
+  const tokensByAddress = tokens.reduce(
+    (acc, token) => {
+      acc[token.address.toLowerCase()] = token
+      return acc
+    },
+    {} as Record<string, any>,
+  )
 
-  const sellTokenDecimals = sellTokenObject.decimals
-  const buyTokenDecimals = buyTokenObject.decimals
-  const sellTokenAddress = sellTokenObject.address
+  const sellTokenObject = tokensBySymbol[sellToken]
+  const buyTokenObject = tokensBySymbol[buyToken]
+
+  const sellTokenDecimals = sellTokenObject?.decimals || 18
+  const buyTokenDecimals = buyTokenObject?.decimals || 18
+  const sellTokenAddress = sellTokenObject?.address
 
   const parsedSellAmount =
     sellAmount && tradeDirection === "sell" ? parseUnits(sellAmount, sellTokenDecimals).toString() : undefined
@@ -84,9 +82,11 @@ export default function PriceView({
 
   // Fetch price data and set the buyAmount whenever the sellAmount changes
   useEffect(() => {
+    if (!sellTokenObject || !buyTokenObject || !sellAmount) return
+
     const params = {
       chainId: chainId,
-      sellToken: sellTokenObject.address,
+      sellToken: sellTokenAddress,
       buyToken: buyTokenObject.address,
       sellAmount: parsedSellAmount,
       buyAmount: parsedBuyAmount,
@@ -98,48 +98,41 @@ export default function PriceView({
     }
 
     async function main() {
-      const response = await fetch(`/api/price?${qs.stringify(params)}`)
-      const data = await response.json()
+      setIsLoadingPrice(true)
+      try {
+        const response = await fetch(`/api/price?${qs.stringify(params)}`)
+        const data = await response.json()
 
-      if (data?.validationErrors?.length > 0) {
-        // error for sellAmount too low
-        setError(data.validationErrors)
-      } else {
-        setError([])
-      }
-      if (data.buyAmount) {
-        setBuyAmount(formatUnits(data.buyAmount, buyTokenDecimals))
-        setPrice(data)
-      }
-      // Set token tax information
-      if (data?.tokenMetadata) {
-        setBuyTokenTax(data.tokenMetadata.buyToken)
-        setSellTokenTax(data.tokenMetadata.sellToken)
+        if (data?.validationErrors?.length > 0) {
+          setError(data.validationErrors)
+        } else {
+          setError([])
+        }
+        if (data.buyAmount) {
+          setBuyAmount(formatUnits(data.buyAmount, buyTokenDecimals))
+          setPrice(data)
+        }
+        if (data?.tokenMetadata) {
+          setBuyTokenTax(data.tokenMetadata.buyToken)
+          setSellTokenTax(data.tokenMetadata.sellToken)
+        }
+      } catch (err) {
+        console.error("Error fetching price:", err)
+      } finally {
+        setIsLoadingPrice(false)
       }
     }
 
     if (sellAmount !== "") {
       main()
     }
-  }, [
-    sellTokenObject.address,
-    buyTokenObject.address,
-    parsedSellAmount,
-    parsedBuyAmount,
-    chainId,
-    sellAmount,
-    setPrice,
-    FEE_RECIPIENT,
-    AFFILIATE_FEE,
-  ])
+  }, [sellTokenAddress, buyTokenObject?.address, parsedSellAmount, parsedBuyAmount, chainId, sellAmount, setPrice])
 
   // Hook for fetching balance information for specified token for a specific taker address
   const { data, isError, isLoading } = useBalance({
     address: taker,
-    token: sellTokenObject.address,
+    token: sellTokenAddress as Address,
   })
-
-  console.log("taker sellToken balance: ", data)
 
   const inSufficientBalance = data && sellAmount ? parseUnits(sellAmount, sellTokenDecimals) > data.value : true
 
@@ -160,18 +153,30 @@ export default function PriceView({
     setTheme((prev) => (prev === "light" ? "dark" : "light"))
   }
 
+  const handleSwapTokens = () => {
+    setIsSwapping(true)
+    setTimeout(() => {
+      const tempToken = sellToken
+      const tempAmount = sellAmount
+      setSellToken(buyToken)
+      setBuyToken(tempToken)
+      setSellAmount(buyAmount)
+      setBuyAmount(tempAmount)
+      setIsSwapping(false)
+    }, 300)
+  }
+
   // Hooks for ERC20 allowance
   const spender = price?.issues.allowance?.spender
   const { data: allowance, refetch } = useReadContract({
-    address: sellTokenAddress,
+    address: sellTokenAddress as Address,
     abi: erc20Abi,
     functionName: "allowance",
     args: [taker, spender],
   })
-  console.log("checked spender approval")
 
   const { data: simulateApproveData } = useSimulateContract({
-    address: sellTokenAddress,
+    address: sellTokenAddress as Address,
     abi: erc20Abi,
     functionName: "approve",
     args: [spender, MAX_ALLOWANCE],
@@ -188,6 +193,15 @@ export default function PriceView({
       refetch()
     }
   }, [simulateApproveData, refetch])
+
+  if (tokensLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <LoadingSpinner size="lg" />
+        <span className="ml-3 text-lg">Loading tokens...</span>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -211,125 +225,82 @@ export default function PriceView({
         <ConnectButton />
       </header>
 
-      <div className="container mx-auto p-10">
+      <div className="container mx-auto p-10 max-w-md">
         <header className="text-center py-4">
           <h1 className="text-3xl font-bold">CryptoSwap by Pratik</h1>
         </header>
 
-        <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-md mb-3">
-          <label htmlFor="sell" className="text-gray-300 mb-2 mr-2">
-            Sell
-          </label>
-          <section className="mt-4 flex items-start justify-center">
-            <label htmlFor="sell-select" className="sr-only"></label>
-            <Image
-              alt={sellToken}
-              className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[sellToken].logoURI || "/placeholder.svg"}
-              width={9}
-              height={9}
-            />
-
-            <div className="h-14 sm:w-full sm:mr-2">
-              <select
-                value={sellToken}
-                name="sell-token-select"
-                id="sell-token-select"
-                className="mr-2 w-50 sm:w-full h-9 rounded-md"
-                onChange={handleSellTokenChange}
-              >
-                {/* <option value="">--Choose a token--</option> */}
-                {MAINNET_TOKENS.map((token) => {
-                  return (
-                    <option key={token.address} value={token.symbol.toLowerCase()}>
-                      {token.symbol}
-                    </option>
-                  )
-                })}
-              </select>
+        <div className="bg-slate-200 dark:bg-slate-800 p-6 rounded-lg mb-3 space-y-4">
+          {/* Sell Token Section */}
+          <div>
+            <TokenSelector tokens={tokens} selectedToken={sellToken} onTokenSelect={setSellToken} label="Sell" />
+            <div className="mt-2">
+              <input
+                id="sell-amount"
+                value={sellAmount}
+                placeholder="0.0"
+                className="w-full h-12 px-4 text-lg rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                type="number"
+                onChange={(e) => {
+                  setTradeDirection("sell")
+                  setSellAmount(e.target.value)
+                }}
+              />
             </div>
-            <label htmlFor="sell-amount" className="sr-only"></label>
-            <input
-              id="sell-amount"
-              value={sellAmount}
-              className="h-9 rounded-md"
-              style={{ border: "1px solid black" }}
-              type="number"
-              onChange={(e) => {
-                setTradeDirection("sell")
-                setSellAmount(e.target.value)
-              }}
-            />
-          </section>
-          <label htmlFor="buy" className="text-gray-300 mb-2 mr-2">
-            Buy
-          </label>
-          <section className="flex mb-6 mt-4 items-start justify-center">
-            <label htmlFor="buy-token" className="sr-only"></label>
-            <Image
-              alt={buyToken}
-              className="h-9 w-9 mr-2 rounded-md"
-              src={MAINNET_TOKENS_BY_SYMBOL[buyToken].logoURI || "/placeholder.svg"}
-              width={9}
-              height={9}
-            />
-            <select
-              name="buy-token-select"
-              id="buy-token-select"
-              value={buyToken}
-              className="mr-2 w-50 sm:w-full h-9 rounded-md"
-              onChange={(e) => handleBuyTokenChange(e)}
-            >
-              {/* <option value="">--Choose a token--</option> */}
-              {MAINNET_TOKENS.map((token) => {
-                return (
-                  <option key={token.address} value={token.symbol.toLowerCase()}>
-                    {token.symbol}
-                  </option>
-                )
-              })}
-            </select>
-            <label htmlFor="buy-amount" className="sr-only"></label>
-            <input
-              id="buy-amount"
-              value={buyAmount}
-              className="h-9 rounded-md bg-white cursor-not-allowed"
-              type="number"
-              style={{ border: "1px solid black" }}
-              disabled
-              onChange={(e) => {
-                setTradeDirection("buy")
-                setBuyAmount(e.target.value)
-              }}
-            />
-          </section>
-
-          {/* Affiliate Fee Display */}
-          <div className="text-slate-400">
-            {price && price.fees.integratorFee.amount
-              ? "Affiliate Fee: " +
-                Number(
-                  formatUnits(BigInt(price.fees.integratorFee.amount), MAINNET_TOKENS_BY_SYMBOL[buyToken].decimals),
-                ) +
-                " " +
-                MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol
-              : null}
           </div>
 
-          {/* Tax Information Display */}
-          <div className="text-slate-400">
+          {/* Swap Animation */}
+          <SwapAnimation isSwapping={isSwapping} onSwap={handleSwapTokens} />
+
+          {/* Buy Token Section */}
+          <div>
+            <TokenSelector tokens={tokens} selectedToken={buyToken} onTokenSelect={setBuyToken} label="Buy" />
+            <div className="mt-2 relative">
+              <input
+                id="buy-amount"
+                value={buyAmount}
+                placeholder="0.0"
+                className="w-full h-12 px-4 text-lg rounded-lg border border-gray-300 bg-gray-50 cursor-not-allowed"
+                type="number"
+                disabled
+                onChange={(e) => {
+                  setTradeDirection("buy")
+                  setBuyAmount(e.target.value)
+                }}
+              />
+              {isLoadingPrice && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <LoadingSpinner size="sm" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fee and Tax Information */}
+          <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+            {price && price.fees?.integratorFee?.amount && (
+              <div>
+                Affiliate Fee:{" "}
+                {Number(formatUnits(BigInt(price.fees.integratorFee.amount), buyTokenDecimals)).toFixed(6)}{" "}
+                {buyTokenObject?.symbol}
+              </div>
+            )}
             {buyTokenTax.buyTaxBps !== "0" && (
-              <p>{MAINNET_TOKENS_BY_SYMBOL[buyToken].symbol + ` Buy Tax: ${formatTax(buyTokenTax.buyTaxBps)}%`}</p>
+              <div>
+                {buyTokenObject?.symbol} Buy Tax: {formatTax(buyTokenTax.buyTaxBps)}%
+              </div>
             )}
             {sellTokenTax.sellTaxBps !== "0" && (
-              <p>{MAINNET_TOKENS_BY_SYMBOL[sellToken].symbol + ` Sell Tax: ${formatTax(sellTokenTax.sellTaxBps)}%`}</p>
+              <div>
+                {sellTokenObject?.symbol} Sell Tax: {formatTax(sellTokenTax.sellTaxBps)}%
+              </div>
             )}
           </div>
         </div>
 
         {taker ? (
           <ApproveOrReviewButton
-            sellTokenAddress={MAINNET_TOKENS_BY_SYMBOL[sellToken].address}
+            sellTokenAddress={sellTokenAddress as Address}
             taker={taker}
             onClick={() => {
               setFinalize(true)
@@ -361,7 +332,7 @@ export default function PriceView({
                     if (!connected) {
                       return (
                         <button
-                          className="w-full bg-blue-600 text-white font-semibold p-2 rounded hover:bg-blue-700"
+                          className="w-full bg-blue-600 text-white font-semibold p-3 rounded-lg hover:bg-blue-700 transition-colors"
                           onClick={openConnectModal}
                           type="button"
                         >
@@ -372,45 +343,31 @@ export default function PriceView({
 
                     if (chain.unsupported) {
                       return (
-                        <button onClick={openChainModal} type="button">
+                        <button
+                          onClick={openChainModal}
+                          type="button"
+                          className="w-full bg-red-600 text-white font-semibold p-3 rounded-lg hover:bg-red-700 transition-colors"
+                        >
                           Wrong network
                         </button>
                       )
                     }
 
                     return (
-                      <div style={{ display: "flex", gap: 12 }}>
+                      <div className="flex gap-2">
                         <button
                           onClick={openChainModal}
-                          style={{ display: "flex", alignItems: "center" }}
+                          className="flex items-center justify-center px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                           type="button"
                         >
-                          {chain.hasIcon && (
-                            <div
-                              style={{
-                                background: chain.iconBackground,
-                                width: 12,
-                                height: 12,
-                                borderRadius: 999,
-                                overflow: "hidden",
-                                marginRight: 4,
-                              }}
-                            >
-                              {chain.iconUrl && (
-                                <Image
-                                  src={chain.iconUrl || "/placeholder.svg"}
-                                  alt={chain.name ?? "Chain icon"}
-                                  width={12}
-                                  height={12}
-                                  layout="fixed"
-                                />
-                              )}
-                            </div>
-                          )}
                           {chain.name}
                         </button>
 
-                        <button onClick={openAccountModal} type="button">
+                        <button
+                          onClick={openAccountModal}
+                          type="button"
+                          className="flex-1 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-center"
+                        >
                           {account.displayName}
                           {account.displayBalance ? ` (${account.displayBalance})` : ""}
                         </button>
@@ -446,17 +403,13 @@ function ApproveOrReviewButton({
   writeContract: any
   isApproving: boolean
 }) {
-  // If price.issues.allowance is null, show the Review Trade button
   if (price?.issues.allowance === null) {
     return (
       <button
         type="button"
         disabled={disabled}
-        onClick={() => {
-          // fetch data, when finished, show quote view
-          onClick()
-        }}
-        className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+        onClick={onClick}
+        className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
       >
         {disabled ? "Insufficient Balance" : "Review Trade"}
       </button>
@@ -465,23 +418,27 @@ function ApproveOrReviewButton({
 
   if (allowance === 0n) {
     return (
-      <>
-        <button
-          type="button"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
-          onClick={async () => {
-            await writeContract({
-              abi: erc20Abi,
-              address: sellTokenAddress,
-              functionName: "approve",
-              args: [price?.issues.allowance?.spender, MAX_ALLOWANCE],
-            })
-            console.log("approving spender to spend sell token")
-          }}
-        >
-          {isApproving ? "Approving…" : "Approve"}
-        </button>
-      </>
+      <button
+        type="button"
+        className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
+        onClick={async () => {
+          await writeContract({
+            abi: erc20Abi,
+            address: sellTokenAddress,
+            functionName: "approve",
+            args: [price?.issues.allowance?.spender, MAX_ALLOWANCE],
+          })
+        }}
+      >
+        {isApproving ? (
+          <>
+            <LoadingSpinner size="sm" />
+            <span className="ml-2">Approving…</span>
+          </>
+        ) : (
+          "Approve"
+        )}
+      </button>
     )
   }
 
@@ -489,11 +446,8 @@ function ApproveOrReviewButton({
     <button
       type="button"
       disabled={disabled}
-      onClick={() => {
-        // fetch data, when finished, show quote view
-        onClick()
-      }}
-      className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-25"
+      onClick={onClick}
+      className="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
       {disabled ? "Insufficient Balance" : "Review Trade"}
     </button>
