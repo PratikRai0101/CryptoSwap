@@ -1,4 +1,5 @@
 # CryptoSwap
+A crypto swap application by Pratik 
 Add commentMore actions
 A beautiful, modern, and minimal decentralized crypto swap interface built with Next.js, RainbowKit, Wagmi, and the 0x Swap API. Easily connect your wallet, get real-time swap quotes, and swap tokens with a smooth user experience and full dark/light mode support.
 
@@ -87,3 +88,4 @@ MIT
 ## 💡 Credits
 - UI inspired by modern DeFi apps.
 - Built by [Pratik](https://github.com/yourusername).
+
